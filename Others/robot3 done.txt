@@ -1,0 +1,278 @@
+#include "vDemoTask.h"
+#include <math.h>
+
+float GetPosX();
+float GetPosY();
+
+/*typedef struct typeBastInfo{
+  u8 nodeID;         //1 byte
+  float locationX;   //4 bytes
+  float locationY;   //4 bytes
+}typeBastInfo; */
+
+//static typeBastInfo bcastInfo;
+
+const float pi = 3.14159;
+const float vel = 10; //in mm/sec
+
+float convert2deg(float angle_rad){
+  float angle_deg;
+  if(angle_rad > 0)
+    angle_deg = angle_rad * 180 / pi;
+  else
+    angle_deg = 180 + angle_rad * 180 / pi;
+  return angle_deg;
+}
+//dir = 1 for clockwise rotation, dir = -1 for anticlockwise
+void rotate(int dir, float angle_deg){
+  float angle_rad = angle_deg * pi / 180;
+  float time; //sec
+  
+  float R = 30;
+  time = R * angle_rad / vel;
+  
+  SetLeftWheelGivenSpeed(dir * vel);
+  SetRightWheelGivenSpeed(-1 * dir *vel);
+  
+  vTaskDelay((int)time*1000);
+}
+
+void halt(int time){
+  SetLeftWheelGivenSpeed(0);
+  SetRightWheelGivenSpeed(0);
+  vTaskDelay((int)(time*1000));
+}
+
+//dir = 1 for forward, dir = -1 for reverse
+void straight_time(int dir, int time){
+  SetLeftWheelGivenSpeed(dir * vel);
+  SetRightWheelGivenSpeed(dir * vel);
+  vTaskDelay((int)time * 1000);
+}
+
+//dir = 1 for forward, dir = -1 for reverse
+void straight_dist(int dir, float dist){
+ 
+  float time;           //in sec
+  
+  time = dist / vel;
+  
+  SetLeftWheelGivenSpeed(dir * vel);
+  SetRightWheelGivenSpeed(dir * vel);
+  vTaskDelay((int)time * 1000);
+}
+
+int within_range(float x1,float y1,float x2,float y2){
+  int ret = 0;
+  float distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+  if(distance < 50){
+      ret = 1;
+  }
+  return ret;
+}
+
+void gotoPos(float x3, float y3){
+  static int dir=0;
+  static float x1,y1,x2,y2;     //in mm
+  static float m2,m3;//m1
+  static float theta1,theta2,theta_rot;       //in rad?
+  while(1){
+      x1 = GetPosX();
+      y1 = GetPosY();
+     // halt(1);
+      asm("NOP");
+      if(within_range(x1,y1,x3,y3)){
+        break;
+      }
+      
+      //m1 = (y3 - y1)/ (x3 - x1);
+      
+      straight_time(1,1);
+    
+      x2 = GetPosX();
+      y2 = GetPosY();
+    
+      m2 = (y2 - y1)/ (x2 - x1);
+      m3 = (y3 - y2)/ (x3 - x2);
+      theta1 = atan(m2);
+      theta2 = atan(m3);
+    
+      theta1 = convert2deg(theta1);
+      theta2 = convert2deg(theta2);
+      //theta_rot = fabs(180 + theta2 - theta1);
+      theta_rot = fabs(theta1 - theta2);
+    
+      if((y1-y3)-m3*(x1-x3) > 0)
+        dir = -1;
+      else
+        dir = 1;
+     // halt(1);
+      asm("NOP");
+      rotate(dir, theta_rot);
+    }
+}
+
+void vDemoTask( void *pvParameters ) {
+  
+  //halt(16); //ROBOT1
+  //halt(13); //ROBOT2
+  //halt(10); //ROBOT3
+  halt(7); //ROBOT4
+  static float x1,y1,x2,y2,initx,inity;
+  static float m2;
+  static float theta1;
+  //x2 = 690; y2 = 385; //ROBOT1
+  //x2 = 790;y2 = 410;  //ROBOT2
+  //x2 = 580; y2 = 395;   //ROBOT3
+  x2 = 450; y2 = 390; //ROBOT4
+  while(1){
+    //vTaskDelay(20);
+    /*
+    initx = GetPosX();
+    inity = GetPosY();
+    while(1){
+      x1 = GetPosX();
+      y1 = GetPosY();
+      if(within_range(x1,y1,x2,y2)){
+        break;
+      }
+      else{
+        SetLeftWheelGivenSpeed(30);
+        SetRightWheelGivenSpeed(30);
+        vTaskDelay(1000);
+      }
+    }
+    m2 = (y1 - inity)/ (x1 - initx);
+    theta1 = atan(m2);
+    theta1 = convert2deg(theta1);
+    theta1 = 180 - theta1;
+    */
+    SetLeftWheelGivenSpeed(30);
+    SetRightWheelGivenSpeed(30);
+    vTaskDelay(14250);
+
+    halt(1);
+    //rotate(-1, 133.5); //ROBOT1
+    //SetLeftWheelGivenSpeed(-10);
+    //SetRightWheelGivenSpeed(10);
+    //vTaskDelay(666);
+    //rotate(-1, 177 - theta1); //ROBOT3
+    rotate(-1, 110.7); //ROBOT4
+    SetLeftWheelGivenSpeed(-10);
+    SetRightWheelGivenSpeed(10);
+    vTaskDelay(266);
+    
+    //halt(15); //ROBOT1
+    //halt(11); //ROBOT2
+    halt(26);  //ROBOT3
+    //halt(13); //ROBOT4
+    
+    
+    SetLeftWheelGivenSpeed(30);
+    SetRightWheelGivenSpeed(30);
+    vTaskDelay(26566);
+    
+    halt(1);
+    rotate(1, 90); //ROBOT2
+    
+    halt(1);
+    SetLeftWheelGivenSpeed(30);
+    SetRightWheelGivenSpeed(30);
+    vTaskDelay(4300);
+    
+    halt(30);
+  }
+}
+
+    /*
+    //=====test Beep 
+      SetBeepStatus(BEEP_TOGGLE);
+    */
+
+    /*
+    //=====test light sensor 
+    MotorRunEnable(false);
+    static float lightSensorBuf[100];
+    static u8 lightSensorBufP=0;
+    lightSensorBuf[lightSensorBufP++] = ReadLightSensor();
+    if (lightSensorBufP==100) {
+      lightSensorBufP = 0;
+    }
+    asm("NOP");
+    */
+
+//==== used to test calibration of magnetic sensor result
+    //SetLedStatus(LED_RED, LED_TOGGLE);
+    /*float angle2north = ReadMagSensorAngle2North();
+    asm("NOP");
+    int testDir=0;
+    if (FloatAbs(angle2north)<30) {
+      SetLeftWheelGivenSpeed(0);
+      SetRightWheelGivenSpeed(0);
+      testDir=1;
+      vTaskDelay(5000);
+      //SetLedStatus(LED_YELLOW, LED_OFF);
+    }*/
+      
+//==== used to calibrate mag Sensor
+    /*static typeMagSensor  magSensorCa;
+    static float magXmax=0, magYmax=0, magXmin=0, magYmin=0;
+    static float lightSensorValue;
+    magSensorCa = ReadMagSensor();
+    if (magXmax < magSensorCa.magX) {
+      magXmax = magSensorCa.magX;
+    }
+    if (magXmin > magSensorCa.magX) {
+      magXmin = magSensorCa.magX;
+    }
+    if (magYmax < magSensorCa.magY) {
+      magYmax = magSensorCa.magY;
+    }
+    if (magYmin > magSensorCa.magY) {
+      magYmin = magSensorCa.magY;
+    }*/
+ //==== used to broadcast message to other robots
+    /*
+    bcastInfo.nodeID    = MY_NODE_ID;
+    bcastInfo.locationX = 1;
+    bcastInfo.locationY = 2;
+    
+    u8 txBuf[9];
+    txBuf[0] = bcastInfo.nodeID;
+    memcpy(txBuf+1, (u8*)(&(bcastInfo.locationX)),sizeof(float));
+    memcpy(txBuf+5, (u8*)(&(bcastInfo.locationY)),sizeof(float));
+    
+    RFTxPacket(RF_BROADCAST_INFO, txBuf, 9);
+  */
+
+    
+    
+    
+    
+//==== used to calibrate mag Sensor
+    /*static typeMagSensor  magSensorCa;
+    static float magXmax=0, magYmax=0, magXmin=0, magYmin=0;
+    static float lightSensorValue;
+    magSensorCa = ReadMagSensor();
+    if (magXmax < magSensorCa.magX) {
+      magXmax = magSensorCa.magX;
+    }
+    if (magXmin > magSensorCa.magX) {
+      magXmin = magSensorCa.magX;
+    }
+    if (magYmax < magSensorCa.magY) {
+      magYmax = magSensorCa.magY;
+    }
+    if (magYmin > magSensorCa.magY) {
+      magYmin = magSensorCa.magY;
+    }*/
+    
+    
+  //====Goto a position and beep
+   /* gotoPos(690, 390);    
+    SetBeepStatus(BEEP_ON);
+    vTaskDelay(2000);
+    SetBeepStatus(BEEP_OFF);*/
+    
+
+
